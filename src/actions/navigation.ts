@@ -54,6 +54,15 @@ export function moveSel(delta: number): void {
     state.memberKey = `p:${ms[Math.max(0, Math.min(ms.length - 1, i + delta))]!.pid}`
   }
 }
+/** Open the box for the highlighted process inside a group. */
+export function openProc(): void {
+  const ms = membersOf(curItem())
+  const p = ms[memberIdx(ms)]
+  if (!p) return
+  state.memberKey = `p:${p.pid}`
+  state.procModal = { pid: p.pid }
+  state.procFocus = 0
+}
 /** Go one column to the right. */
 export function enter(): void {
   if (state.focus === 0) {
@@ -97,10 +106,12 @@ export function reveal(pid: number): void {
   }
 }
 
-export function setSort(k: SortKey): void {
-  if (state.sort === k) state.desc = !state.desc
+/** Sort the list (2nd column), or the processes inside a group (3rd column) when `members` is set. */
+export function setSort(k: SortKey, members = false): void {
+  const [key, dir] = members ? (["msort", "mdesc"] as const) : (["sort", "desc"] as const)
+  if (state[key] === k) state[dir] = !state[dir]
   else {
-    state.sort = k
-    state.desc = k !== "name"
+    state[key] = k
+    state[dir] = k !== "name"
   }
 }

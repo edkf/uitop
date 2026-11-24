@@ -1,13 +1,15 @@
 // The numbers the Overview shows, computed once per draw.
 import type { CpuInfo } from "node:os"
 import os from "node:os"
-import { C } from "../../lib/theme"
+import { type Gauge, LIMITS, levelColor } from "../../lib/theme"
 import { state } from "../../state"
 
 /** A plain word and a colour for a percentage. */
 export type Level = [word: string, color: string]
-export const level = (pct: number, words: [string, string, string, string], cuts: [number, number, number]): Level =>
-  pct < cuts[0] ? [words[0], C.green] : pct < cuts[1] ? [words[1], C.green] : pct < cuts[2] ? [words[2], C.yellow] : [words[3], C.memRed]
+export const level = (pct: number, gauge: Gauge, words: [string, string, string, string]): Level => {
+  const l = LIMITS[gauge]
+  return [words[pct < l[0] ? 0 : pct < l[1] ? 1 : pct < l[2] ? 2 : 3], levelColor(gauge, pct)]
+}
 
 export interface Metrics {
   cpuPct: number
@@ -38,8 +40,8 @@ export function getMetrics(): Metrics {
     load,
     loadPct: (load[0]! / cores) * 100,
     cpus: os.cpus(),
-    cpu: level(cpuPct, ["Relaxed", "Working", "Busy", "Maxed out"], [30, 60, 85]),
-    memory: level(memPct, ["Plenty free", "Plenty free", "Getting full", "Almost full"], [50, 70, 85]),
-    disk: level(diskPct, ["Plenty of space", "Plenty of space", "Getting full", "Almost full"], [50, 75, 90]),
+    cpu: level(cpuPct, "cpu", ["Relaxed", "Working", "Busy", "Maxed out"]),
+    memory: level(memPct, "mem", ["Plenty free", "Plenty free", "Getting full", "Almost full"]),
+    disk: level(diskPct, "disk", ["Plenty of space", "Plenty of space", "Getting full", "Almost full"]),
   }
 }

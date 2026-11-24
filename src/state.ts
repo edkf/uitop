@@ -14,13 +14,17 @@ export const state = {
   osName: `${os.type()} ${os.release()}`,
   sort: "cpu" as SortKey,
   desc: true,
+  msort: "cpu" as SortKey, // the process list inside a group (3rd column) sorts on its own
+  mdesc: true,
   spot: { open: false, query: "", sel: 0, top: 0 },
   paused: false,
   help: false,
   cores: false,
   status: "",
-  confirm: null as null | { p: Proc; label: string; info: Info; sig: NodeJS.Signals },
+  confirm: null as null | { p: Proc; label: string; info: Info; sig: NodeJS.Signals; procs: Proc[]; proc: boolean },
   confirmFocus: 0 as 0 | 1, // 0 = Yes, 1 = No
+  procModal: null as null | { pid: number }, // the box for one process picked inside a group
+  procFocus: 0 as 0 | 1 | 2, // 0 = Close program, 1 = Force stop, 2 = Cancel
   hist: { cpu: [] as number[], mem: [] as number[] },
   // navigation
   focus: 0 as 0 | 1 | 2,
@@ -57,14 +61,24 @@ export function memberIdx(ms: Proc[]): number {
   const i = state.memberKey ? ms.findIndex((p) => `p:${p.pid}` === state.memberKey) : 0
   return i < 0 ? 0 : i
 }
-/** The process that Close / Force stop would act on. */
-export function target(): { p: Proc; label: string } | undefined {
+export interface Target {
+  p: Proc // the main process
+  label: string
+  procs: Proc[] // everything a stop is sent to
+  proc: boolean // true when it is one process picked inside a group, false for the whole program
+}
+/** The whole program: every process of the group. */
+export function groupTarget(): Target | undefined {
   const it = curItem()
   if (!it) return undefined
-  const ms = membersOf(it)
-  if (state.focus === 2 && ms.length && state.memberKey) {
+  return { p: it.p, label: it.n === 1 ? infoOf(it.p).name : it.label, procs: it.members, proc: false }
+}
+/** What the `x` key acts on: the process highlighted in the list of a group, otherwise the whole program. */
+export function target(): Target | undefined {
+  const ms = membersOf(curItem())
+  if (state.focus === 2 && state.zone === "list" && ms.length && state.memberKey) {
     const p = ms[memberIdx(ms)]!
-    return { p, label: infoOf(p).name }
+    return { p, label: infoOf(p).name, procs: [p], proc: true }
   }
-  return { p: it.p, label: it.n === 1 ? infoOf(it.p).name : it.label }
+  return groupTarget()
 }

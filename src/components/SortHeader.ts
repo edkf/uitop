@@ -11,13 +11,13 @@ import { state } from "../state"
  * columns never change width or position: faint when it is not the sort key, white when it is
  * (▾ descending, ▴ ascending).
  */
-export function sortHeader(l: Line, text: string, k: SortKey, width: number, right = false): void {
-  const on = state.sort === k
-  const chev = on && !state.desc ? SORT_ASC : SORT_DESC
+export function sortHeader(l: Line, text: string, k: SortKey, width: number, right = false, members = false): void {
+  const on = (members ? state.msort : state.sort) === k
+  const chev = on && !(members ? state.mdesc : state.desc) ? SORT_ASC : SORT_DESC
   const s = `${text} ${chev}`
   const cell = right ? s.padStart(width).slice(-width) : fit(s, width)
   const at = cell.lastIndexOf(chev) // -1 when a narrow column cut the text
-  l.zones.push({ x0: l.x, x1: l.x + cell.length, fn: () => setSort(k) })
+  l.zones.push({ x0: l.x, x1: l.x + cell.length, fn: () => setSort(k, members) })
   if (at < 0) {
     l.add(cell, "#ffffff")
     return

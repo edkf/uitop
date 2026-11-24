@@ -6,7 +6,7 @@ import { Metrics } from "./metrics"
 import { sortBy } from "./sortBy"
 import { fmtBytes } from "../../lib/format"
 import { Line } from "../../lib/line"
-import { C } from "../../lib/theme"
+import { C, levelColor } from "../../lib/theme"
 import { state } from "../../state"
 
 export const memPanel = (m: Metrics) => (pw: number, ph: number): Line[] => {
@@ -24,11 +24,11 @@ export const memPanel = (m: Metrics) => (pw: number, ph: number): Line[] => {
       L.push(lead)
       const swapLines = mem.swapTotal > 0 ? 1 : 0
       const memH = Math.max(0, ih - 1 - swapLines - (swapLines ? 1 : 0)) // keep a blank row above the swap row
-      for (const l of chart(state.hist.mem, iw - 2, memH)) L.push(new Line().add(" ").append(l))
+      for (const l of chart(state.hist.mem, iw - 2, memH, (v) => levelColor("mem", v))) L.push(new Line().add(" ").append(l))
       if (swapLines) {
         if (memH > 0) L.push(new Line())
-        const sw = new Line().add(" Swap  ", C.dim).add(`${fmtBytes(mem.swapUsed)} / ${fmtBytes(mem.swapTotal)}`, m.swapPct < 25 ? C.fg : C.yellow)
-        L.push(flushRight(sw, iw, meter(m.swapPct, meterW(iw), m.swapPct < 25 ? C.green : m.swapPct < 50 ? C.yellow : C.memRed)))
+        const sw = new Line().add(" Swap  ", C.dim).add(`${fmtBytes(mem.swapUsed)} / ${fmtBytes(mem.swapTotal)}`, m.swapPct < 25 ? C.fg : levelColor("swap", m.swapPct))
+        L.push(flushRight(sw, iw, meter(m.swapPct, meterW(iw), levelColor("swap", m.swapPct))))
       }
       return L
     },

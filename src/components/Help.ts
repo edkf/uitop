@@ -62,7 +62,7 @@ export function renderHelp(ow: number, B: number): void {
     body: rows(
       [
         ["↑ ↓   j k", "choose"],
-        ["→  l  Enter", "go in (list → buttons → processes)"],
+        ["→  l  Enter", "go in; on a process inside a group, open its box"],
         ["←  h  Esc", "go back"],
         ["Tab", "next section"],
         ["/", "search every program"],

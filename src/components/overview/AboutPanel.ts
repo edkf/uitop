@@ -12,7 +12,7 @@ import { me, state } from "../../state"
 export const aboutPanel = (m: Metrics) => (pw: number, ph: number): Line[] =>
   panel("About this computer", pw, ph, (iw, ih) => {
     const [diskWordL, diskC] = m.disk
-    const [loadWordL, loadC] = level(m.loadPct, ["calm", "calm", "busy", "overloaded"], [40, 70, 110])
+    const [loadWordL, loadC] = level(m.loadPct, "load", ["calm", "calm", "busy", "overloaded"])
     const kv = (k: string, v: string) => new Line().add(" " + k.padEnd(10), C.dim).add(fit(v, Math.max(0, iw - 12)).trimEnd(), C.fg)
     const gb = (bytes: number) => `${Math.round(bytes / 2 ** 30)}G` // whole gigabytes keep the row short
     // left: label + numbers · right: status word + meter (the meters line up in one column)

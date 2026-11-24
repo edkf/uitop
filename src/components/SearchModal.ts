@@ -16,13 +16,13 @@ export function renderSearchModal(): void {
   const H = renderer.height
   const mw = Math.min(78, W - 4)
   const R = Math.max(3, Math.min(9, H - 10 - 2 * PADY))
-  const mh = R + 5 + 2 * PADY
+  const mh = R + 2 + 2 * PADY
   const P = " ".repeat(PADX)
-  const iw = mw - 2
+  const iw = mw
   spotBox.width = mw
   spotBox.height = mh
   spotBox.left = Math.max(0, Math.floor((W - mw) / 2))
-  spotBox.top = Math.max(1, Math.floor(H * 0.12))
+  spotBox.top = Math.max(0, Math.floor((H - mh) / 2))
 
   const results = spotResults()
   state.spot.sel = Math.max(0, Math.min(state.spot.sel, Math.max(0, results.length - 1)))
@@ -31,19 +31,17 @@ export function renderSearchModal(): void {
   if (sp.sel >= sp.top + R) sp.top = sp.sel - R + 1
   sp.top = Math.max(0, Math.min(sp.top, Math.max(0, results.length - R)))
 
-  // which section each process lives in
-  const secOf = new Map<number, string>()
-  for (const sec of state.model.sections.filter((s) => !s.isAll)) for (const it of sec.items) for (const m of it.members) secOf.set(m.pid, sec.name)
-
   const lines: Line[] = []
   const q = sp.query
   for (let i = 0; i < PADY; i++) lines.push(new Line().fill(iw))
-  lines.push(new Line().add(P + "⌕ ", C.fg).add(q ? q : "type a name, a PID or part of a command…", q ? "#ffffff" : C.dim).add(q ? "█" : "", "#ffffff").fill(iw))
-  const label = q ? `${results.length} match${results.length === 1 ? "" : "es"}` : "Busiest right now"
-  lines.push(new Line().add("─ " + label + " ", C.dim).add("─".repeat(Math.max(0, iw - label.length - 3)), C.sep).fill(iw))
+  const esc = "esc"
+  const room = iw - 2 * PADX - 2 - esc.length - 2
+  const shown = q ? fit(q, room - 1).trimEnd() : fit("type a name, a PID or part of a command…", room).trimEnd()
+  const gap = Math.max(1, iw - PADX - esc.length - (PADX + 2 + shown.length + (q ? 1 : 0)))
+  lines.push(new Line().add(P + "⌕ ", C.fg).add(shown, q ? "#ffffff" : C.dim).add(q ? "█" : "", "#ffffff").add(" ".repeat(gap)).add(esc, C.dim).fill(iw))
+  lines.push(new Line().fill(iw)) // space between the input and the results
 
-  const secW = 20
-  const nameW = Math.max(8, iw - 2 * PADX - secW - 1 - 6 - 1 - 8)
+  const nameW = Math.max(8, iw - 2 * PADX - 1 - 6 - 1 - 8)
   for (let i = sp.top; i < sp.top + R; i++) {
     const p = results[i]
     if (!p) {
@@ -54,7 +52,7 @@ export function renderSearchModal(): void {
     const bg = on ? C.selBg : undefined
     const l = new Line().add(P, C.fg, { bg })
     l.add(fit(infoOf(p).name, nameW), on ? C.selFg : "#ffffff", { bg })
-    l.add(fit(secOf.get(p.pid) ?? "", secW) + " ", on ? C.selFg : C.dim, { bg })
+    l.add(" ", C.fg, { bg })
     l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ", on ? C.selFg : C.fg, { bg })
     l.add(fmtMem(p.rss).padStart(8), on ? C.selFg : memColor(p.rss), { bg })
     l.fill(iw, bg)
@@ -62,7 +60,6 @@ export function renderSearchModal(): void {
     lines.push(l)
   }
   if (!results.length) lines[2 + PADY] = new Line().add(P + "Nothing found. Try a shorter word.", C.dim).fill(iw)
-  lines.push(new Line().add(P + "↑↓ choose · Enter go to it · Esc close", C.dim).fill(iw))
   for (let i = 0; i < PADY; i++) lines.push(new Line().fill(iw))
-  set(spotText, lines.slice(0, mh - 2))
+  set(spotText, lines.slice(0, mh))
 }

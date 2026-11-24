@@ -15,7 +15,8 @@ export function buildModel(): Model {
   }
   const order = (a: Sortable, b: Sortable) => dir * cmp[state.sort](a, b)
   const asSortable = (p: Proc): Sortable => ({ cpu: p.cpu, rss: p.rss, label: infoOf(p).name })
-  state.sortMembers = (ps) => [...ps].sort((a, b) => order(asSortable(a), asSortable(b)))
+  const mdir = state.mdesc ? -1 : 1
+  state.sortMembers = (ps) => [...ps].sort((a, b) => mdir * cmp[state.msort](asSortable(a), asSortable(b)))
 
   const byGroup = new Map<string, Proc[]>()
   for (const p of matches) {

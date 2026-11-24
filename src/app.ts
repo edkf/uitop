@@ -6,6 +6,7 @@ import { renderDetails } from "./components/Details"
 import { renderFooter } from "./components/Footer"
 import { renderHelp } from "./components/Help"
 import { renderList } from "./components/List"
+import { renderProcModal } from "./components/ProcModal"
 import { renderSearchModal } from "./components/SearchModal"
 import { renderOverview } from "./components/overview/Overview"
 import { buildModel } from "./model/build"
@@ -46,6 +47,7 @@ export function render(): void {
     renderDetails(w3, B)
   }
   renderFooter(W, w3 > 0 ? [w1, w1 + w2] : [w1, ...state.bottomSeps.map((x) => w1 + 1 + x)])
+  renderProcModal()
   renderConfirmModal()
   renderSearchModal()
   state.follow = false

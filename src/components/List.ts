@@ -58,13 +58,14 @@ export function renderList(ow: number, B: number): void {
     const bg = on ? (state.focus === 1 ? C.selBg : C.inactiveSel) : undefined
     const hot = on && state.focus === 1
     const l = new Line().add(bg ? "▐" : "│", bg ?? C.sep).add(" ", C.fg, { bg })
+    const mc = memColor(it.rss) // heavy memory tints the whole row
     const group = it.members.length > 1
     const more = group ? ` ×${it.n}` : ""
     l.add(fit(it.label, nameW - more.length).trimEnd(), hot ? C.selFg : on ? "#ffffff" : kindColor[it.kind], { bg })
     l.add(more, hot ? C.selFg : C.dim, { bg })
     l.add(" ".repeat(Math.max(0, 1 + 1 + nameW + 1 - l.x)), C.fg, { bg })
-    l.add((it.cpu.toFixed(1) + "%").padStart(6) + " ".repeat(COLGAP), hot ? C.selFg : it.cpu > 0.4 ? pctColor(it.cpu * 2) : C.dim, { bg })
-    l.add(fmtMem(it.rss).padStart(8), hot ? C.selFg : memColor(it.rss), { bg })
+    l.add((it.cpu.toFixed(1) + "%").padStart(6) + " ".repeat(COLGAP), it.cpu > 0.4 && mc !== C.fg ? mc : hot ? C.selFg : it.cpu > 0.4 ? pctColor(it.cpu * 2) : C.dim, { bg })
+    l.add(fmtMem(it.rss).padStart(8), hot ? (mc !== C.fg ? mc : C.selFg) : mc, { bg })
     lines.push(l.fill(w, bg))
   }
   set(listView, pad(lines, B, ow, true, ex, navEdgeBg))

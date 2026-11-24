@@ -1,6 +1,6 @@
 // The terminal renderer and the fixed set of views (columns, footer, floating boxes).
-import { BoxRenderable, type MouseEvent, TextRenderable, createCliRenderer } from "@opentui/core"
-import { enter, moveNav, selectItem, setNav } from "../actions/navigation"
+import { BoxRenderable, type MouseEvent, RGBA, TextRenderable, createCliRenderer } from "@opentui/core"
+import { enter, moveNav, openProc, selectItem, setNav } from "../actions/navigation"
 import { spotMove } from "../actions/search"
 import { Line, toContent } from "../lib/line"
 import { PADY } from "../lib/theme"
@@ -82,6 +82,7 @@ export const detailsView = mk(
       state.focus = 2
       state.zone = "list"
       state.follow = true
+      openProc()
     }
   },
   (dir) => {
@@ -105,9 +106,11 @@ export const backdrop = new BoxRenderable(renderer, {
   width: "100%",
   height: "100%",
   zIndex: 100,
-  shouldFill: false,
+  shouldFill: true,
+  backgroundColor: RGBA.fromInts(0, 0, 0, 175), // a dark veil: what is behind the box stays visible but dimmed
   onMouseDown: () => {
     state.confirm = null
+    state.procModal = null
     state.spot.open = false
     app.render()
   },
@@ -116,10 +119,7 @@ export const modal = new BoxRenderable(renderer, {
   id: "modal",
   position: "absolute",
   zIndex: 101,
-  border: true,
-  borderStyle: "rounded",
-  titleAlignment: "center",
-  titleColor: "#ffffff",
+  border: false,
   backgroundColor: "#161b22",
   flexDirection: "column",
 } as any)
@@ -135,12 +135,7 @@ export const spotBox = new BoxRenderable(renderer, {
   id: "spot",
   position: "absolute",
   zIndex: 101,
-  border: true,
-  borderStyle: "rounded",
-  borderColor: "#ffffff",
-  title: " Search ",
-  titleAlignment: "center",
-  titleColor: "#ffffff",
+  border: false,
   backgroundColor: "#161b22",
   flexDirection: "column",
 } as any)

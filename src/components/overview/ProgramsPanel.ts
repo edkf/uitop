@@ -11,7 +11,7 @@ import { state } from "../../state"
 export const programsPanel = (_m: Metrics) => (pw: number, ph: number): Line[] => {
   const working = state.procs.filter((p) => p.stat.startsWith("R")).length
   return panel(
-    "Programs",
+    "Categories",
     pw,
     ph,
     (iw, ih) =>
