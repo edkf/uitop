@@ -73,10 +73,10 @@ export function renderDetails(ow: number, B: number): void {
       const on = picked && state.zone === "list"
       const bg = on ? C.selBg : picked ? C.inactiveSel : undefined
       const l = new Line().add(bg ? "▐" : "│", bg ?? C.sep).add(" ", C.fg, { bg })
-      l.add(fit(infoOf(p).name, nameW).trimEnd(), on ? "#ffffff" : kindColor[infoOf(p).kind], { bg })
+      l.add(fit(infoOf(p).name, nameW).trimEnd(), on ? C.selFg : kindColor[infoOf(p).kind], { bg })
       l.add(" ".repeat(Math.max(0, 1 + 1 + nameW + 1 - l.x)), C.fg, { bg })
-      l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ".repeat(COLGAP), p.cpu > 0.4 ? pctColor(p.cpu * 2) : C.dim, { bg })
-      l.add(fmtMem(p.rss).padStart(8), memColor(p.rss), { bg })
+      l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ".repeat(COLGAP), on ? C.selFg : p.cpu > 0.4 ? pctColor(p.cpu * 2) : C.dim, { bg })
+      l.add(fmtMem(p.rss).padStart(8), on ? C.selFg : memColor(p.rss), { bg })
       state.col3Map[lines.length] = i
       lines.push(l.fill(w, bg))
     }

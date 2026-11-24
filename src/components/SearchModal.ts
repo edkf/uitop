@@ -53,10 +53,10 @@ export function renderSearchModal(): void {
     const on = i === sp.sel
     const bg = on ? C.selBg : undefined
     const l = new Line().add(P, C.fg, { bg })
-    l.add(fit(infoOf(p).name, nameW), "#ffffff", { bg })
-    l.add(fit(secOf.get(p.pid) ?? "", secW) + " ", C.dim, { bg })
-    l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ", C.fg, { bg })
-    l.add(fmtMem(p.rss).padStart(8), memColor(p.rss), { bg })
+    l.add(fit(infoOf(p).name, nameW), on ? C.selFg : "#ffffff", { bg })
+    l.add(fit(secOf.get(p.pid) ?? "", secW) + " ", on ? C.selFg : C.dim, { bg })
+    l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ", on ? C.selFg : C.fg, { bg })
+    l.add(fmtMem(p.rss).padStart(8), on ? C.selFg : memColor(p.rss), { bg })
     l.fill(iw, bg)
     l.zones.push({ x0: 0, x1: iw, fn: () => jumpTo(p.pid) })
     lines.push(l)

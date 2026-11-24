@@ -96,14 +96,23 @@ export const pad = (lines: Line[], B: number, ow: number, divider = true, extra 
       const text = l.chunks.map((c) => c.text).join("")
       const r = new Line().add(text.slice(0, ow) + "─".repeat(Math.max(0, ow - text.length)), C.sep)
       r.rule = true
+      // a selection on the left of this rule row: half-cell highlight ending at the divider line, like every other row
+      const ebg = divider ? edgeBg?.(y) : undefined
+      if (ebg && r.chunks[0]) {
+        const rest = r.chunks[0].text.slice(1)
+        r.chunks = [chunk("▌", ebg), ...(rest ? [{ ...r.chunks[0], text: rest }] : [])]
+      }
       return r
     }
     const r = (extra > 0 ? shiftLine(l, extra, divider ? 1 : 0) : l).clip(ow).padRight(ow)
     // the divider cell is half-filled with the colour of a selection on its left, so the highlight touches the line
     const bg = divider ? edgeBg?.(y) : undefined
     if (bg && r.chunks[0]) {
-      const alsoStartsHere = r.chunks[0].text === "▐" // this row's own highlight begins at the same divider
-      r.chunks[0] = chunk(alsoStartsHere ? "█" : "▌", bg) // half a cell, so the highlight ends exactly at the line
+      const first = r.chunks[0]
+      // half a cell, so the highlight ends exactly at the line
+      r.chunks[0] = chunk("▌", bg)
+      // this row's own highlight begins at the same divider (its "▐"): paint that colour on the right half
+      if (first.text === "▐") r.chunks[0] = { ...r.chunks[0]!, bg: first.fg }
     }
     return r
   })

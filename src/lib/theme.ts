@@ -10,7 +10,8 @@ export const C = {
   blue: "#58a6ff",
   cyan: "#39c5cf",
   headerBg: "#1f6feb",
-  selBg: "#264f78",
+  selBg: "#ffffff", // focused selection: white block with dark text
+  selFg: "#0d1117", // text on the focused selection (the terminal background)
   inactiveSel: "#2d333b",
   btnBg: "#30363d",
   barBg: "#30363d",
@@ -22,7 +23,7 @@ export const col = (h: string) => rgba.get(h) ?? (rgba.set(h, RGBA.fromHex(h)), 
 export interface Style {
   bg?: string
 }
-export const KEEP = new Set([C.memRed, C.barBg, C.sep, C.faint, C.selBg, C.inactiveSel])
+export const KEEP = new Set([C.selFg, C.memRed, C.barBg, C.sep, C.faint, C.selBg, C.inactiveSel])
 export const mode = { mono: true } // lists and surrounding UI: white text (+ red for high memory). The Overview turns this off to use full colour.
 export const chunk = (text: string, fg = C.fg, o: Style = {}): TextChunk => ({
   __isChunk: true,
