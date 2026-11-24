@@ -1,0 +1,68 @@
+// The quick-search box.
+import { jumpTo, spotResults } from "../actions/search"
+import { fmtMem } from "../lib/format"
+import { Line } from "../lib/line"
+import { fit } from "../lib/text"
+import { C, PADX, PADY, memColor } from "../lib/theme"
+import { infoOf, state } from "../state"
+import { backdrop, renderer, set, spotBox, spotText } from "../ui/renderer"
+
+export function renderSearchModal(): void {
+  const open = state.spot.open
+  spotBox.visible = open
+  backdrop.visible = backdrop.visible || open
+  if (!open) return
+  const W = renderer.width
+  const H = renderer.height
+  const mw = Math.min(78, W - 4)
+  const R = Math.max(3, Math.min(9, H - 10 - 2 * PADY))
+  const mh = R + 5 + 2 * PADY
+  const P = " ".repeat(PADX)
+  const iw = mw - 2
+  spotBox.width = mw
+  spotBox.height = mh
+  spotBox.left = Math.max(0, Math.floor((W - mw) / 2))
+  spotBox.top = Math.max(1, Math.floor(H * 0.12))
+
+  const results = spotResults()
+  state.spot.sel = Math.max(0, Math.min(state.spot.sel, Math.max(0, results.length - 1)))
+  const sp = state.spot
+  if (sp.sel < sp.top) sp.top = sp.sel
+  if (sp.sel >= sp.top + R) sp.top = sp.sel - R + 1
+  sp.top = Math.max(0, Math.min(sp.top, Math.max(0, results.length - R)))
+
+  // which section each process lives in
+  const secOf = new Map<number, string>()
+  for (const sec of state.model.sections.filter((s) => !s.isAll)) for (const it of sec.items) for (const m of it.members) secOf.set(m.pid, sec.name)
+
+  const lines: Line[] = []
+  const q = sp.query
+  for (let i = 0; i < PADY; i++) lines.push(new Line().fill(iw))
+  lines.push(new Line().add(P + "⌕ ", C.fg).add(q ? q : "type a name, a PID or part of a command…", q ? "#ffffff" : C.dim).add(q ? "█" : "", "#ffffff").fill(iw))
+  const label = q ? `${results.length} match${results.length === 1 ? "" : "es"}` : "Busiest right now"
+  lines.push(new Line().add("─ " + label + " ", C.dim).add("─".repeat(Math.max(0, iw - label.length - 3)), C.sep).fill(iw))
+
+  const secW = 20
+  const nameW = Math.max(8, iw - 2 * PADX - secW - 1 - 6 - 1 - 8)
+  for (let i = sp.top; i < sp.top + R; i++) {
+    const p = results[i]
+    if (!p) {
+      lines.push(new Line().fill(iw))
+      continue
+    }
+    const on = i === sp.sel
+    const bg = on ? C.selBg : undefined
+    const l = new Line().add(P, C.fg, { bg })
+    l.add(fit(infoOf(p).name, nameW), "#ffffff", { bg })
+    l.add(fit(secOf.get(p.pid) ?? "", secW) + " ", C.dim, { bg })
+    l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ", C.fg, { bg })
+    l.add(fmtMem(p.rss).padStart(8), memColor(p.rss), { bg })
+    l.fill(iw, bg)
+    l.zones.push({ x0: 0, x1: iw, fn: () => jumpTo(p.pid) })
+    lines.push(l)
+  }
+  if (!results.length) lines[2 + PADY] = new Line().add(P + "Nothing found. Try a shorter word.", C.dim).fill(iw)
+  lines.push(new Line().add(P + "↑↓ choose · Enter go to it · Esc close", C.dim).fill(iw))
+  for (let i = 0; i < PADY; i++) lines.push(new Line().fill(iw))
+  set(spotText, lines.slice(0, mh - 2))
+}

@@ -1,0 +1,21 @@
+{
+  "name": "uitop",
+  "version": "1.0.0",
+  "description": "A beginner-friendly terminal system monitor built on OpenTUI.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.5.10",
+    "bun": "^1.4.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "typescript": "^5.9.3"
+  }
+}

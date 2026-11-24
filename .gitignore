@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# logs and coverage
+*.log
+coverage/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# keys and certificates
+*.pem
+*.key
+*.p12
+
+# editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# local tooling (machine-specific settings)
+.claude/
