@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs"
 import { AppEnv, LinuxApp, linuxApp } from "../data/apps"
 import { Proc } from "../data/system"
+import { C, theme } from "../lib/theme"
 import { me } from "../state"
 import { app } from "../ui/hooks"
 import { root } from "../ui/renderer"
@@ -221,30 +222,25 @@ export function foldHelpers(procs: Proc[], infos: Map<number, Info>): void {
   }
 }
 
-export const kindColor: Record<Kind, string> = {
-  App: "#3fb950",
-  Helper: "#39c5cf",
-  System: "#58a6ff",
-  Dev: "#bc8cff",
-  Service: "#d29922",
-  Other: "#8b949e",
-}
+const kindDark: Record<Kind, string> = { App: "#3fb950", Helper: "#39c5cf", System: "#58a6ff", Dev: "#bc8cff", Service: "#d29922", Other: "#8b949e" }
+const kindLight: Record<Kind, string> = { App: "#1a7f37", Helper: "#1b7c83", System: "#0969da", Dev: "#8250df", Service: "#9a6700", Other: "#6e7781" }
+export const kindColor = new Proxy({} as Record<Kind, string>, { get: (_, k: Kind) => (theme.light ? kindLight : kindDark)[k] })
 
 export function statusWord(stat: string): { word: string; why: string; color: string } {
   switch (stat[0]) {
     case "R":
-      return { word: "Working", why: "actively using the CPU right now", color: "#3fb950" }
+      return { word: "Working", why: "actively using the CPU right now", color: C.green }
     case "S":
     case "I":
-      return { word: "Idle", why: "waiting for something to do. Completely normal", color: "#6e7681" }
+      return { word: "Idle", why: "waiting for something to do. Completely normal", color: C.dim }
     case "T":
-      return { word: "Paused", why: "frozen (stopped) until something resumes it", color: "#d29922" }
+      return { word: "Paused", why: "frozen (stopped) until something resumes it", color: C.yellow }
     case "Z":
-      return { word: "Stuck", why: "a finished program that was never cleaned up (a \"zombie\"). Harmless but untidy", color: "#f85149" }
+      return { word: "Stuck", why: "a finished program that was never cleaned up (a \"zombie\"). Harmless but untidy", color: C.memRed }
     case "U":
-      return { word: "Waiting", why: "waiting on the disk or network", color: "#d29922" }
+      return { word: "Waiting", why: "waiting on the disk or network", color: C.yellow }
     default:
-      return { word: stat, why: "unusual state", color: "#8b949e" }
+      return { word: stat, why: "unusual state", color: C.icon }
   }
 }
 

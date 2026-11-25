@@ -13,7 +13,7 @@ export class Line {
     this.x += text.length
     return this
   }
-  btn(text: string, fn: () => void, fg = "#ffffff", bg: string | null = C.btnBg): this {
+  btn(text: string, fn: () => void, fg = C.text, bg: string | null = C.btnBg): this {
     this.zones.push({ x0: this.x, x1: this.x + text.length, fn })
     return this.add(text, fg, { bg: bg ?? undefined })
   }

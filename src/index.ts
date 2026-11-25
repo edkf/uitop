@@ -7,9 +7,15 @@ import { writeSync } from "node:fs"
 import "./keyboard" // registers the key handler
 import { render } from "./app"
 import { startRefreshing } from "./refresh"
+import { guessTheme, setTheme } from "./lib/theme"
 import { renderer } from "./ui/renderer"
 
 renderer.on("resize", render)
+// Follow the terminal's light/dark mode: ask it once at start (COLORFGBG is the fallback), then keep following changes.
+setTheme(guessTheme())
+setTheme((await renderer.waitForThemeMode(300)) ?? guessTheme())
+render()
+renderer.on("theme_mode", (mode) => (setTheme(mode), render()))
 // After the renderer has restored the terminal, make sure no input mode leaks into the shell.
 // With the kitty keyboard protocol OpenTUI pops its flags on exit but leaves xterm's modifyOtherKeys
 // (CSI > 4 ; 1 m) switched on, so the shell then receives mangled key sequences and typing breaks.

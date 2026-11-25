@@ -18,8 +18,8 @@ export function renderBrowse(w: number, B: number): void {
     const on = name === state.nav
     const bg = on ? (state.focus === 0 ? C.selBg : C.inactiveSel) : undefined
     const hot = on && state.focus === 0
-    const l = new Line().add(on ? SELECTED : " ", hot ? C.selFg : "#ffffff", { bg })
-    l.add(fit(" " + name, w - 1 - PADX), hot ? C.selFg : on ? "#ffffff" : C.fg, { bg })
+    const l = new Line().add(on ? SELECTED : " ", hot ? C.selFg : C.text, { bg })
+    l.add(fit(" " + name, w - 1 - PADX), hot ? C.selFg : on ? C.text : C.fg, { bg })
     lines.push(l.fill(w, bg))
   }
   // minimal CPU and memory meters pinned to the bottom of the column

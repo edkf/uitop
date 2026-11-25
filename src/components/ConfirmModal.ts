@@ -30,7 +30,7 @@ export function renderConfirmModal(): void {
   const verb = force ? "Force stop" : "Close"
   const esc = "esc"
   const head = P + fit(`${verb} “${c.label}”?`, iw - 2 * PADX - esc.length - 1).trimEnd()
-  lines.push(new Line().add(head, "#ffffff").add(" ".repeat(Math.max(1, iw - PADX - esc.length - head.length))).add(esc, C.dim).fill(iw))
+  lines.push(new Line().add(head, C.text).add(" ".repeat(Math.max(1, iw - PADX - esc.length - head.length))).add(esc, C.dim).fill(iw))
   blank()
   const msg = risky
     ? `This looks like ${c.p.user === me ? `a system ${what}` : `a ${what} owned by ${c.p.user}`}. Stopping it could make things misbehave or log you out. Are you sure?`

@@ -29,7 +29,7 @@ export function renderList(ow: number, B: number): void {
     lines.push(sep(new Line()).add(" Nothing here.", C.yellow).fill(w))
     return set(listView, pad(lines, B, ow, true, ex, navEdgeBg))
   }
-  lines.push(sep(new Line()).add(` ${sec.name}`, "#ffffff").add(` (${sec.n})`, C.dim).fill(w))
+  lines.push(sep(new Line()).add(` ${sec.name}`, C.text).add(` (${sec.n})`, C.dim).fill(w))
 
   const right = 1 + 6 + COLGAP + 8
   const nameW = Math.max(6, w - 1 - 1 - right - 1)
@@ -61,7 +61,7 @@ export function renderList(ow: number, B: number): void {
     const mc = memColor(it.rss) // heavy memory tints the whole row
     const group = it.members.length > 1
     const more = group ? ` ×${it.n}` : ""
-    l.add(fit(it.label, nameW - more.length).trimEnd(), hot ? C.selFg : on ? "#ffffff" : kindColor[it.kind], { bg })
+    l.add(fit(it.label, nameW - more.length).trimEnd(), hot ? C.selFg : on ? C.text : kindColor[it.kind], { bg })
     l.add(more, hot ? C.selFg : C.dim, { bg })
     l.add(" ".repeat(Math.max(0, 1 + 1 + nameW + 1 - l.x)), C.fg, { bg })
     l.add((it.cpu.toFixed(1) + "%").padStart(6) + " ".repeat(COLGAP), it.cpu > 0.4 && mc !== C.fg ? mc : hot ? C.selFg : it.cpu > 0.4 ? pctColor(it.cpu * 2) : C.dim, { bg })

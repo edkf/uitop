@@ -37,7 +37,7 @@ export function renderDetails(ow: number, B: number): void {
   lines.push(sep().fill(w))
   const members = membersOf(it)
   const isGroup = members.length > 0
-  lines.push(sep().add(" ", C.fg).add(fit(it.label,Math.max(6, w - 2)).trimEnd(), "#ffffff").fill(w))
+  lines.push(sep().add(" ", C.fg).add(fit(it.label,Math.max(6, w - 2)).trimEnd(), C.text).fill(w))
 
   if (isGroup) {
     lines.push(sep().add(` ${it.n} processes together: `, C.dim).add(`${it.cpu.toFixed(1)}% CPU`, pctColor(it.cpu * 2)).add(" · ", C.dim).add(fmtMem(it.rss), memColor(it.rss)).fill(w))
@@ -84,7 +84,7 @@ export function renderDetails(ow: number, B: number): void {
     lines.push(sep().fill(w)) // same rows as the group header, so the buttons sit at the same height
     lines.push(actionLine(w, groupTarget(), focusedBtn()))
     lines.push(sep().fill(w))
-    lines.push(sep().add(" Details", "#ffffff").fill(w))
+    lines.push(sep().add(" Details", C.text).fill(w))
     const rule = new Line().add("├", C.sep).add("─".repeat(Math.max(0, w - 1)), C.sep)
     rule.rule = true
     lines.push(rule)

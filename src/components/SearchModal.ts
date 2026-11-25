@@ -38,7 +38,7 @@ export function renderSearchModal(): void {
   const room = iw - 2 * PADX - 2 - esc.length - 2
   const shown = q ? fit(q, room - 1).trimEnd() : fit("type a name, a PID or part of a command…", room).trimEnd()
   const gap = Math.max(1, iw - PADX - esc.length - (PADX + 2 + shown.length + (q ? 1 : 0)))
-  lines.push(new Line().add(P + "⌕ ", C.fg).add(shown, q ? "#ffffff" : C.dim).add(q ? "█" : "", "#ffffff").add(" ".repeat(gap)).add(esc, C.dim).fill(iw))
+  lines.push(new Line().add(P + "⌕ ", C.fg).add(shown, q ? C.text : C.dim).add(q ? "█" : "", C.text).add(" ".repeat(gap)).add(esc, C.dim).fill(iw))
   lines.push(new Line().fill(iw)) // space between the input and the results
 
   const nameW = Math.max(8, iw - 2 * PADX - 1 - 6 - 1 - 8)
@@ -51,7 +51,7 @@ export function renderSearchModal(): void {
     const on = i === sp.sel
     const bg = on ? C.selBg : undefined
     const l = new Line().add(P, C.fg, { bg })
-    l.add(fit(infoOf(p).name, nameW), on ? C.selFg : "#ffffff", { bg })
+    l.add(fit(infoOf(p).name, nameW), on ? C.selFg : C.text, { bg })
     l.add(" ", C.fg, { bg })
     l.add((p.cpu.toFixed(1) + "%").padStart(6) + " ", on ? C.selFg : C.fg, { bg })
     l.add(fmtMem(p.rss).padStart(8), on ? C.selFg : memColor(p.rss), { bg })

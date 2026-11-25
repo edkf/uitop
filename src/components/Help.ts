@@ -21,7 +21,7 @@ export function renderHelp(ow: number, B: number): void {
     for (const [label, desc] of items) {
       wrapWords(desc, descW).forEach((part, i) => {
         const l = new Line().add(" ".repeat(MARGIN))
-        if (i === 0) chip ? l.add(` ${label.padEnd(labelW)} `, "#ffffff", { bg: C.btnBg }) : l.add(label.padEnd(labelW), "#ffffff")
+        if (i === 0) chip ? l.add(` ${label.padEnd(labelW)} `, C.text, { bg: C.btnBg }) : l.add(label.padEnd(labelW), C.text)
         else l.add(" ".repeat(labelW + (chip ? 2 : 0)))
         out.push(l.add("  " + part, C.fg))
       })

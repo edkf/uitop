@@ -3,7 +3,7 @@ import { BoxRenderable, type MouseEvent, RGBA, TextRenderable, createCliRenderer
 import { enter, moveNav, openProc, selectItem, setNav } from "../actions/navigation"
 import { spotMove } from "../actions/search"
 import { Line, toContent } from "../lib/line"
-import { PADY } from "../lib/theme"
+import { C, PADY, onTheme, theme } from "../lib/theme"
 import { curItem, curSection, membersOf, state } from "../state"
 import { app } from "./hooks"
 
@@ -120,7 +120,7 @@ export const modal = new BoxRenderable(renderer, {
   position: "absolute",
   zIndex: 101,
   border: false,
-  backgroundColor: "#161b22",
+  backgroundColor: C.modalBg,
   flexDirection: "column",
 } as any)
 export const modalText = mk("modalText", { flexGrow: 1 })
@@ -136,10 +136,16 @@ export const spotBox = new BoxRenderable(renderer, {
   position: "absolute",
   zIndex: 101,
   border: false,
-  backgroundColor: "#161b22",
+  backgroundColor: C.modalBg,
   flexDirection: "column",
 } as any)
 export const spotText = mk("spotText", { flexGrow: 1 }, undefined, (dir) => spotMove(dir))
 spotBox.add(spotText)
 spotBox.visible = false
 renderer.root.add(spotBox)
+// Boxes keep their own colours, so repaint them when the palette changes.
+onTheme(() => {
+  modal.backgroundColor = C.modalBg
+  spotBox.backgroundColor = C.modalBg
+  backdrop.backgroundColor = theme.light ? RGBA.fromInts(255, 255, 255, 175) : RGBA.fromInts(0, 0, 0, 175)
+})

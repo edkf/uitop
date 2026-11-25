@@ -29,7 +29,7 @@ export function renderProcModal(): void {
   for (let i = 0; i < PADY; i++) blank()
   const esc = "esc"
   const head = P + fit(name, mw - 2 * PADX - esc.length - 1).trimEnd()
-  lines.push(new Line().add(head, "#ffffff").add(" ".repeat(Math.max(1, mw - PADX - esc.length - head.length))).add(esc, C.dim).fill(mw))
+  lines.push(new Line().add(head, C.text).add(" ".repeat(Math.max(1, mw - PADX - esc.length - head.length))).add(esc, C.dim).fill(mw))
   lines.push(new Line().add(P).add(fit(`${sw.word}: ${sw.why}`, mw - 2 * PADX).trimEnd(), sw.color).fill(mw))
   blank()
   const btns = new Line().add(P)

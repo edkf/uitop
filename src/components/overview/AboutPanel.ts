@@ -22,7 +22,7 @@ export const aboutPanel = (m: Metrics) => (pw: number, ph: number): Line[] =>
     const wordW = Math.max(diskWordL.length, loadWordL.length)
     const showWord = iw - 1 - 11 - numW - 1 - 6 - (wordW + 1) >= 1 // is there room for the status word?
     const inline = (label: string, num: string, word: string, pct: number, c: string) => {
-      const l = new Line().add(" " + label.padEnd(10), C.dim).add(num, "#ffffff")
+      const l = new Line().add(" " + label.padEnd(10), C.dim).add(num, C.text)
       const rightW = (showWord ? wordW + 1 : 0) + 5
       l.add(" ".repeat(Math.max(1, iw - 1 - l.x - rightW)))
       if (showWord) l.add(word.padStart(wordW), c).add(" ")

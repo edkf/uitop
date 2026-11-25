@@ -92,7 +92,7 @@ function tile(mark: boolean): Line[] {
     const ny = (centerY(Math.floor(i / W)) - C0 / 2) / U
     const dot = Math.hypot(nx, ny + 0.4) <= 0.12
     const stem = Math.abs(nx) <= 0.1 && ny >= -0.1 && ny <= 0.5
-    return dot || stem ? "#8b949e" : C.barBg
+    return dot || stem ? C.icon : C.barBg
   })
   g.forEach((col) => col && KEEP.add(col))
   return draw(g)

@@ -11,8 +11,8 @@ export function panel(title: string, w: number, h: number, body: (iw: number, ih
   const rows: Line[] = []
   for (let i = 0; i < PADY; i++) rows.push(new Line().fill(w))
   const top = new Line().add(" ".repeat(PADX))
-  if (o.onTitle) top.btn(title, o.onTitle, "#ffffff", null)
-  else top.add(title, "#ffffff")
+  if (o.onTitle) top.btn(title, o.onTitle, C.text, null)
+  else top.add(title, C.text)
   const right = o.right && title.length + o.right.length + 2 * PADX + 4 <= w ? o.right : ""
   if (right) top.add(" ".repeat(Math.max(1, w - top.x - right.length - PADX))).add(right, C.dim)
   rows.push(top.clip(w).fill(w))

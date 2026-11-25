@@ -13,11 +13,11 @@ export function renderFooter(W: number, dividers: number[]): void {
   for (let x = 0; x < W; x++) t += dividers.includes(x) ? "┴" : "─"
   const rule = new Line().add(t, C.sep)
   const l = new Line()
-  if (state.status) return set(footer, [rule, l.add(" " + state.status, "#ffffff").fill(W)])
+  if (state.status) return set(footer, [rule, l.add(" " + state.status, C.text).fill(W)])
   l.add(" ".repeat(PADX - 1))
   const key = (k: string, label: string, fn: () => void) => {
-    l.btn(` ${k}`, fn, "#ffffff", null)
-    l.btn(` ${label} `, fn, "#ffffff", null)
+    l.btn(` ${k}`, fn, C.text, null)
+    l.btn(` ${label} `, fn, C.text, null)
   }
   key("←", "Back", back)
   key("→", "Open", enter)

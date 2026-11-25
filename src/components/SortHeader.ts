@@ -19,10 +19,10 @@ export function sortHeader(l: Line, text: string, k: SortKey, width: number, rig
   const at = cell.lastIndexOf(chev) // -1 when a narrow column cut the text
   l.zones.push({ x0: l.x, x1: l.x + cell.length, fn: () => setSort(k, members) })
   if (at < 0) {
-    l.add(cell, "#ffffff")
+    l.add(cell, C.text)
     return
   }
-  l.add(cell.slice(0, at), "#ffffff")
-  l.add(chev, on ? "#ffffff" : C.faint)
-  l.add(cell.slice(at + 1), "#ffffff")
+  l.add(cell.slice(0, at), C.text)
+  l.add(chev, on ? C.text : C.faint)
+  l.add(cell.slice(at + 1), C.text)
 }
