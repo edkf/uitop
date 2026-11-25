@@ -13,7 +13,7 @@ import { pngToGrid } from "./png"
 import { C, KEEP } from "./theme"
 import { app } from "../ui/hooks"
 
-export const ICON_COLS = 10 // the one number that sets the icon size (and its detail): use an even number
+export const ICON_COLS = 14 // the one number that sets the icon size (and its detail): use an even number
 export const ICON_ROWS = ICON_COLS / 2 // a cell is about twice as tall as it is wide, so the icon comes out square
 const C0 = ICON_COLS // the icon's side, in columns
 const W = 2 * ICON_COLS // sub-pixels across (2 per cell)
@@ -33,7 +33,7 @@ const centerX = (sx: number) => (sx + 0.5) / 2
 const centerY = (sy: number) => sy + 0.5
 
 const DIR = join(homedir(), ".cache", "uitop")
-const CACHE_FILE = join(DIR, "icons-v7.json")
+const CACHE_FILE = join(DIR, "icons-v8.json")
 /** W*H colours ("#rrggbb", or "" for see-through), or null when the app has no usable icon. */
 type Grid = string[] | null
 /** Where an icon comes from: a macOS .app bundle, or an icon name to look up on Linux. */
