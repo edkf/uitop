@@ -9,7 +9,8 @@
   "scripts": {
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "build": "scripts/build.sh"
   },
   "dependencies": {
     "@opentui/core": "^0.5.10",
