@@ -12,29 +12,33 @@ import { Line } from "./line"
 import { pngToGrid } from "./png"
 import { C, KEEP } from "./theme"
 import { app } from "../ui/hooks"
+import { renderer } from "../ui/renderer"
 
-export const ICON_COLS = 14 // the one number that sets the icon size (and its detail): use an even number
-export const ICON_ROWS = ICON_COLS / 2 // a cell is about twice as tall as it is wide, so the icon comes out square
-const C0 = ICON_COLS // the icon's side, in columns
-const W = 2 * ICON_COLS // sub-pixels across (2 per cell)
-const H = 2 * ICON_ROWS // sub-pixels down (2 per cell)
+export const ICON_ROWS = 7 // the icon's height in rows
+const GW = 28 // the cached picture: 28 x 14 sub-pixels (2 per cell), whatever the icon's drawn width
+const GH = 2 * ICON_ROWS
 const MARK_SCALE = 0.6 // how much of the tile the "i" fills (1 = edge to edge)
 export const ICON_RADIUS = 0.3 // corner roundness as a fraction of the icon's side (0 = square)
 
-/** Is the point (x, y), measured in columns from the icon's top-left corner, inside its rounded square? */
-function inside(x: number, y: number): boolean {
-  const R = C0 * ICON_RADIUS
-  const cx = Math.min(Math.max(x, R), C0 - R)
-  const cy = Math.min(Math.max(y, R), C0 - R)
+/** Icon width in columns. Cells are taller than wide by a terminal-specific ratio (often 2.0 to 2.4), so the
+ *  width is measured from the terminal's pixel size to make the icon truly 1:1. Falls back to 2:1 cells. */
+export function iconCols(): number {
+  const res = renderer.resolution
+  const ratio = res && renderer.width && renderer.height ? res.height / renderer.height / (res.width / renderer.width) : 2
+  return Math.max(10, Math.min(20, Math.round(ICON_ROWS * (ratio > 1 && ratio < 4 ? ratio : 2))))
+}
+
+/** Is the point (x, y), in columns from the icon's top-left corner, inside its rounded square (side = cols)? */
+function inside(x: number, y: number, cols: number): boolean {
+  const R = cols * ICON_RADIUS
+  const cx = Math.min(Math.max(x, R), cols - R)
+  const cy = Math.min(Math.max(y, R), cols - R)
   return Math.hypot(x - cx, y - cy) <= R
 }
-// sub-pixel (sx, sy) sits at ((sx + 0.5) / 2, (sy + 0.5)) columns: half a column wide, one column tall
-const centerX = (sx: number) => (sx + 0.5) / 2
-const centerY = (sy: number) => sy + 0.5
 
 const DIR = join(homedir(), ".cache", "uitop")
-const CACHE_FILE = join(DIR, "icons-v8.json")
-/** W*H colours ("#rrggbb", or "" for see-through), or null when the app has no usable icon. */
+const CACHE_FILE = join(DIR, "icons-v9.json")
+/** GW*GH colours ("#rrggbb", or "" for see-through), or null when the app has no usable icon. */
 type Grid = string[] | null
 /** Where an icon comes from: a macOS .app bundle, or an icon name to look up on Linux. */
 type Source = { key: string; kind: "mac" | "name"; path: string; command?: string }
@@ -71,31 +75,32 @@ function sourceOf(command: string, icon?: string): Source | undefined {
 const drawn = new Map<string, Line[]>()
 const once = (key: string, make: () => Line[]) => drawn.get(key) ?? (drawn.set(key, make()), drawn.get(key)!)
 
-/** The icon as ICON_ROWS lines, each ICON_COLS wide. Never blocks, and costs almost nothing once drawn. */
+/** The icon as ICON_ROWS lines, each iconCols() wide. Never blocks, and costs almost nothing once drawn. */
 export function iconRows(command: string, icon?: string): Line[] {
+  const cols = iconCols()
   const src = sourceOf(command, icon)
-  if (!src) return once("mark", () => tile(true))
+  if (!src) return once(`mark${cols}`, () => tile(true, cols))
   const g = grids.get(src.key)
   if (g === undefined) {
     if (!pending.has(src.key)) (pending.add(src.key), queue.push(src), pump())
-    return once("blank", () => tile(false))
+    return once(`blank${cols}`, () => tile(false, cols))
   }
-  return g ? once(src.key, () => draw(g)) : once("mark", () => tile(true))
+  return g ? once(`${src.key}@${cols}`, () => draw(g, cols)) : once(`mark${cols}`, () => tile(true, cols))
 }
 
 /** A rounded grey tile; with an "i" (for info) when it stands for "no app icon". */
-function tile(mark: boolean): Line[] {
-  const U = C0 * MARK_SCALE // the mark's own size, so it leaves an empty margin inside the tile
-  const g = Array.from({ length: W * H }, (_, i) => {
+function tile(mark: boolean, cols: number): Line[] {
+  const U = GW / 2 * MARK_SCALE // the mark's own size, in sub-pixels, so it leaves an empty margin inside the tile
+  const g = Array.from({ length: GW * GH }, (_, i) => {
     if (!mark) return C.barBg
-    const nx = (centerX(i % W) - C0 / 2) / U // -0.5 .. 0.5 across the mark
-    const ny = (centerY(Math.floor(i / W)) - C0 / 2) / U
+    const nx = (((i % GW) + 0.5) / GW - 0.5) * (GW / 2) / U // -0.5 .. 0.5 across the mark
+    const ny = ((Math.floor(i / GW) + 0.5) / GH - 0.5) * (GH) / U
     const dot = Math.hypot(nx, ny + 0.4) <= 0.12
     const stem = Math.abs(nx) <= 0.1 && ny >= -0.1 && ny <= 0.5
     return dot || stem ? C.icon : C.barBg
   })
   g.forEach((col) => col && KEEP.add(col))
-  return draw(g)
+  return draw(g, cols)
 }
 
 // the character for each way of filling a cell's four quadrants (bit 1 top-left, 2 top-right, 4 bottom-left, 8 bottom-right)
@@ -105,16 +110,20 @@ const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
 const hex = (c: number[]) => "#" + c.map((n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, "0")).join("")
 const mean = (cs: number[][]) => [0, 1, 2].map((k) => cs.reduce((a, c) => a + c[k]!, 0) / cs.length)
 
-function draw(g: string[]): Line[] {
+function draw(g: string[], width: number): Line[] {
   const rows: Line[] = []
   for (let r = 0; r < ICON_ROWS; r++) {
     const l = new Line()
-    for (let c = 0; c < ICON_COLS; c++) {
+    for (let c = 0; c < width; c++) {
       // the four quadrants of this cell: top-left, top-right, bottom-left, bottom-right
       const q = [0, 1, 2, 3].map((k) => {
         const sx = 2 * c + (k & 1)
         const sy = 2 * r + (k >> 1)
-        return inside(centerX(sx), centerY(sy)) ? g[sy * W + sx] || "" : ""
+        // position in columns (the icon is cols wide and, being square, cols tall), then the nearest cached pixel
+        const fx = (sx + 0.5) / (2 * width)
+        const fy = (sy + 0.5) / GH
+        if (!inside(fx * width, fy * width, width)) return ""
+        return g[Math.min(GH - 1, Math.floor(fy * GH)) * GW + Math.min(GW - 1, Math.floor(fx * GW))] || ""
       })
       const solid = [0, 1, 2, 3].filter((k) => q[k])
       if (!solid.length) {
@@ -254,4 +263,4 @@ async function rasterize(svg: string): Promise<string | undefined> {
   return undefined
 }
 
-const toGrid = (png: Buffer): Grid => pngToGrid(png, W, H)
+const toGrid = (png: Buffer): Grid => pngToGrid(png, GW, GH)
