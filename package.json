@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A beginner-friendly terminal system monitor built on OpenTUI.",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

@@ -110,3 +110,7 @@ src/
 ## Status
 
 Early. Expect rough edges and layout changes.
+
+## License
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). You are free to use, modify and share this project for non-commercial purposes. Commercial use, including selling it, requires permission from the author.
