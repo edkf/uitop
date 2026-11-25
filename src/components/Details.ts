@@ -33,7 +33,7 @@ export function renderDetails(ow: number, B: number): void {
   if (!sec || !it) return set(detailsView, pad([], B, ow, true, ex, listEdgeBg))
 
   // the app's icon sits alone on top of the header, with the title and the rest underneath
-  for (const row of iconRows(it.p.command)) lines.push(sep().add(" ").append(row).fill(w))
+  for (const row of iconRows(it.p.command, infoOf(it.p).icon)) lines.push(sep().add(" ").append(row).fill(w))
   lines.push(sep().fill(w))
   const members = membersOf(it)
   const isGroup = members.length > 0

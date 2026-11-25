@@ -58,6 +58,7 @@ Everything is read from the local machine. No network access, no telemetry, no h
 | Memory, swap | `vm_stat`, `sysctl vm.swapusage` | `/proc/meminfo` |
 | Disk | `df` (data volume) | `df` |
 | System name | `sw_vers` | `/etc/os-release` |
+| App names, icons | `.app` bundles (`Info.plist`, `sips`) | `.desktop` entries, icon themes, sandbox environment (`APPIMAGE`, `FLATPAK_ID`, `SNAP_NAME`) |
 
 Data refreshes every 1.5 seconds.
 
@@ -66,6 +67,7 @@ Data refreshes every 1.5 seconds.
 A program's name, group and type come from its executable path and its owner, nothing else:
 
 - Anything inside a `.app` bundle is named after the bundle. Helpers, renderers and GPU processes are labeled as helpers of that app.
+- On Linux, a visible `.desktop` launcher is what makes a program an App: its name and icon come from the launcher. AppImage, Flatpak and snap programs are traced back to their launcher through the sandbox environment, and Chrome/Chromium web apps (`--app-id`) keep their own name and icon. Renderers, GPU and crash-handler processes are folded into the app that started them.
 - Interpreters are named after the script they run (`node server.js`).
 - System paths and system accounts mark System and Background services.
 
@@ -73,8 +75,8 @@ These are heuristics. A process can land in the wrong section.
 
 ## Platforms
 
-- **macOS:** developed and tested here.
-- **Linux:** implemented, not tested.
+- **macOS:** developed and tested here. App names and icons come from `.app` bundles.
+- **Linux:** implemented and tested on Ubuntu. App names and icons come from `.desktop` launchers and the installed icon themes; SVG-only icons need `rsvg-convert`, Inkscape or ImageMagick (`convert`) to render.
 - **Windows:** not supported.
 
 ## Known limits
@@ -82,6 +84,7 @@ These are heuristics. A process can land in the wrong section.
 - Group memory is a sum of resident memory. Shared memory is counted more than once, so group totals read high.
 - Stopping a process you don't own fails without elevated privileges. uitop tells you instead of failing silently.
 - Section and type are guesses, not facts. See above.
+- Chrome/Chromium web apps share the browser process. A web app gets its own row only when it has its own process (launched with `--app-id`); a window opened inside an already-running browser belongs to the browser's row.
 - The refresh interval is fixed.
 
 ## Project layout

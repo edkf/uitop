@@ -1,7 +1,7 @@
 // Polls the system every 1.5 seconds and updates state.
 import { flash } from "./actions/stop"
 import { sampleCpu, sampleDisk, sampleMem, sampleOsName, sampleProcs } from "./data/system"
-import { describe } from "./model/describe"
+import { describe, foldHelpers, foldSandboxes } from "./model/describe"
 import { me, state } from "./state"
 import { app } from "./ui/hooks"
 import { renderer } from "./ui/renderer"
@@ -14,6 +14,8 @@ export async function refresh(): Promise<void> {
     const [procs, mem, disk] = await Promise.all([sampleProcs(), sampleMem(), sampleDisk()])
     state.procs = procs
     state.info = new Map(procs.map((p) => [p.pid, describe(p, me, process.pid)]))
+    foldSandboxes(procs, state.info)
+    foldHelpers(procs, state.info)
     state.mem = mem
     state.disk = disk
     state.cpu = sampleCpu()

@@ -1,13 +1,15 @@
 // A text-mode picture of an app's icon, drawn with quadrant block characters (2 x 2 "pixels" per cell).
 // The picture is made lazily and in the background (only for the app being shown), cached in memory and on
-// disk, so drawing never waits for it. While it is not ready, and for anything that is not an .app, a grey
-// tile with an "i" is shown instead.
+// disk, so drawing never waits for it. Icons come from a macOS .app bundle or, on Linux, from the icon
+// theme the app's .desktop launcher points at. While it is not ready, and for anything without an icon,
+// a grey tile with an "i" is shown instead.
 import { execFile } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
-import { inflateSync } from "node:zlib"
+import { findIconFile, linuxApp } from "../data/apps"
 import { Line } from "./line"
+import { pngToGrid } from "./png"
 import { C, KEEP } from "./theme"
 import { app } from "../ui/hooks"
 
@@ -31,12 +33,14 @@ const centerX = (sx: number) => (sx + 0.5) / 2
 const centerY = (sy: number) => sy + 0.5
 
 const DIR = join(homedir(), ".cache", "uitop")
-const CACHE_FILE = join(DIR, "icons-v4.json")
+const CACHE_FILE = join(DIR, "icons-v5.json")
 /** W*H colours ("#rrggbb", or "" for see-through), or null when the app has no usable icon. */
 type Grid = string[] | null
+/** Where an icon comes from: a macOS .app bundle, or an icon name to look up on Linux. */
+type Source = { key: string; kind: "mac" | "name"; path: string; command?: string }
 const grids = new Map<string, Grid>()
 const pending = new Set<string>()
-const queue: string[] = []
+const queue: Source[] = []
 let running = 0
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -48,20 +52,35 @@ try {
 /** The outermost .app folder of a command line, or undefined for plain programs. */
 export const bundleOf = (command: string): string | undefined => command.match(/^(\/.*?\.app)\//)?.[1]
 
+/** Which icon file (or bundle) stands for this command, if any. */
+function sourceOf(command: string, icon?: string): Source | undefined {
+  if (process.platform === "darwin") {
+    const b = bundleOf(command)
+    if (b && existsSync(join(b, "Contents", "Info.plist"))) return { key: `mac:${b}`, kind: "mac", path: b }
+    return
+  }
+  if (process.platform === "linux") {
+    const name = icon ?? linuxApp(command)?.icon
+    // look the name up off the drawing path, in compute()
+    if (name) return { key: `icon:${name}`, kind: "name", path: name, command }
+  }
+  return
+}
+
 // Drawing an icon means picking the best block character for every cell, so each picture is drawn once and reused.
 const drawn = new Map<string, Line[]>()
 const once = (key: string, make: () => Line[]) => drawn.get(key) ?? (drawn.set(key, make()), drawn.get(key)!)
 
 /** The icon as ICON_ROWS lines, each ICON_COLS wide. Never blocks, and costs almost nothing once drawn. */
-export function iconRows(command: string): Line[] {
-  const b = bundleOf(command)
-  if (!b) return once("mark", () => tile(true))
-  const g = grids.get(b)
+export function iconRows(command: string, icon?: string): Line[] {
+  const src = sourceOf(command, icon)
+  if (!src) return once("mark", () => tile(true))
+  const g = grids.get(src.key)
   if (g === undefined) {
-    if (!pending.has(b)) (pending.add(b), queue.push(b), pump())
+    if (!pending.has(src.key)) (pending.add(src.key), queue.push(src), pump())
     return once("blank", () => tile(false))
   }
-  return g ? once(b, () => draw(g)) : once("mark", () => tile(true))
+  return g ? once(src.key, () => draw(g)) : once("mark", () => tile(true))
 }
 
 /** A rounded grey tile; with an "i" (for info) when it stands for "no app icon". */
@@ -134,14 +153,14 @@ function draw(g: string[]): Line[] {
 
 function pump(): void {
   while (running < 3 && queue.length) {
-    const b = queue.shift()!
+    const src = queue.shift()!
     running++
-    compute(b)
+    compute(src)
       .catch(() => null)
       .then((g) => {
-        grids.set(b, g)
+        grids.set(src.key, g)
         keep(g)
-        pending.delete(b)
+        pending.delete(src.key)
         running--
         scheduleSave()
         app.render()
@@ -163,7 +182,21 @@ function scheduleSave(): void {
 const run = (cmd: string, args: string[]) =>
   new Promise<string>((res, rej) => execFile(cmd, args, { timeout: 5000 }, (e, out) => (e ? rej(e) : res(String(out).trim()))))
 
-async function compute(bundle: string): Promise<Grid> {
+async function compute(src: Source): Promise<Grid> {
+  if (src.kind === "mac") return computeMac(src.path)
+  // Resolving an icon name means scanning the icon themes. Let the frame that asked for the tile
+  // finish first, so that scanning runs in the background like the rest of the icon work.
+  await new Promise((r) => setTimeout(r, 0))
+  let file = findIconFile(src.path)
+  if (!file && src.command) {
+    const alt = linuxApp(src.command)?.icon
+    file = alt ? findIconFile(alt) : undefined
+  }
+  return file ? computeFile(file) : null
+}
+
+/** macOS: ask the bundle's Info.plist for its .icns and convert that to a PNG. */
+async function computeMac(bundle: string): Promise<Grid> {
   const plist = join(bundle, "Contents", "Info.plist")
   if (!existsSync(plist)) return null
   let name = await run("plutil", ["-extract", "CFBundleIconFile", "raw", "-o", "-", plist]).catch(() => "")
@@ -181,95 +214,42 @@ async function compute(bundle: string): Promise<Grid> {
   return toGrid(buf)
 }
 
-/** Decode an 8-bit RGB/RGBA PNG, crop away its see-through margin and shrink it to N x N colours. */
-function toGrid(png: Buffer): Grid {
-  let w = 0
-  let h = 0
-  let type = 0
-  const idat: Buffer[] = []
-  for (let o = 8; o + 8 <= png.length; ) {
-    const len = png.readUInt32BE(o)
-    const kind = png.toString("ascii", o + 4, o + 8)
-    if (kind === "IHDR") {
-      w = png.readUInt32BE(o + 8)
-      h = png.readUInt32BE(o + 12)
-      if (png[o + 16] !== 8 || png[o + 20] !== 0) return null // only 8-bit, non-interlaced
-      type = png[o + 17]!
-    } else if (kind === "IDAT") idat.push(png.subarray(o + 8, o + 8 + len))
-    o += 12 + len
-  }
-  const bpp = type === 6 ? 4 : type === 2 ? 3 : 0
-  if (!bpp || !w || !h) return null
-  const raw = inflateSync(Buffer.concat(idat))
-  const stride = w * bpp
-  const px = Buffer.alloc(stride * h)
-  for (let y = 0; y < h; y++) {
-    const f = raw[y * (stride + 1)]!
-    const src = y * (stride + 1) + 1
-    for (let i = 0; i < stride; i++) {
-      const a = i >= bpp ? px[y * stride + i - bpp]! : 0
-      const b = y ? px[(y - 1) * stride + i]! : 0
-      const c = y && i >= bpp ? px[(y - 1) * stride + i - bpp]! : 0
-      let v = raw[src + i]!
-      if (f === 1) v += a
-      else if (f === 2) v += b
-      else if (f === 3) v += (a + b) >> 1
-      else if (f === 4) {
-        const p = a + b - c
-        const pa = Math.abs(p - a)
-        const pb = Math.abs(p - b)
-        const pc = Math.abs(p - c)
-        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c
-      }
-      px[y * stride + i] = v & 255
+/** Linux: a theme's PNG is ready to use; an SVG first has to be rendered by whatever is installed. */
+async function computeFile(file: string): Promise<Grid> {
+  let png = file
+  let temp = false
+  if (/\.svg$/i.test(file)) {
+    const made = await rasterize(file)
+    if (!made) return null
+    png = made
+    temp = true
+  } else if (!/\.png$/i.test(file)) return null
+  try {
+    return toGrid(readFileSync(png))
+  } finally {
+    if (temp) {
+      try {
+        unlinkSync(png)
+      } catch {}
     }
   }
-  const alphaAt = (x: number, y: number) => (bpp === 4 ? px[y * stride + x * 4 + 3]! : 255)
-  // the box that holds the visible part of the icon, made square
-  let x0 = w
-  let y0 = h
-  let x1 = -1
-  let y1 = -1
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (alphaAt(x, y) <= 128) continue
-      x0 = Math.min(x0, x)
-      x1 = Math.max(x1, x)
-      y0 = Math.min(y0, y)
-      y1 = Math.max(y1, y)
-    }
-  }
-  if (x1 < 0) return null
-  const side = Math.max(x1 - x0, y1 - y0) + 1
-  const sx = x0 - Math.floor((side - (x1 - x0 + 1)) / 2)
-  const sy = y0 - Math.floor((side - (y1 - y0 + 1)) / 2)
-  const hx = (n: number) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, "0")
-  const out: string[] = []
-  for (let gy = 0; gy < H; gy++) {
-    const ya = Math.floor(sy + (gy * side) / H)
-    const yb = Math.max(ya + 1, Math.floor(sy + ((gy + 1) * side) / H))
-    for (let gx = 0; gx < W; gx++) {
-      const xa = Math.floor(sx + (gx * side) / W)
-      const xb = Math.max(xa + 1, Math.floor(sx + ((gx + 1) * side) / W))
-      let r = 0
-      let g = 0
-      let b = 0
-      let a = 0
-      let n = 0
-      for (let y = ya; y < yb; y++) {
-        for (let x = xa; x < xb; x++) {
-          n++
-          if (x < 0 || y < 0 || x >= w || y >= h) continue
-          const al = alphaAt(x, y)
-          const i = y * stride + x * bpp
-          r += px[i]! * al
-          g += px[i + 1]! * al
-          b += px[i + 2]! * al
-          a += al
-        }
-      }
-      out.push(a / n < 128 ? "" : `#${hx(r / a)}${hx(g / a)}${hx(b / a)}`)
-    }
-  }
-  return out
 }
+
+async function rasterize(svg: string): Promise<string | undefined> {
+  const out = join(tmpdir(), `uitop-icon-${process.pid}-${Math.random().toString(36).slice(2)}.png`)
+  const attempts: [string, string[]][] = [
+    ["rsvg-convert", ["-w", "160", "-h", "160", "-o", out, svg]],
+    ["inkscape", [svg, "--export-type=png", `--export-filename=${out}`, "-w", "160", "-h", "160"]],
+    // PNG32: force 8-bit RGBA; without it ImageMagick writes 16-bit grey for monochrome icons
+    ["convert", ["-background", "none", "-density", "600", svg, "-resize", "160x160", `PNG32:${out}`]],
+  ]
+  for (const [cmd, args] of attempts) {
+    try {
+      await run(cmd, args)
+      if (existsSync(out)) return out
+    } catch {}
+  }
+  return undefined
+}
+
+const toGrid = (png: Buffer): Grid => pngToGrid(png, W, H)
