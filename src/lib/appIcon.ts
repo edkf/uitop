@@ -33,7 +33,7 @@ const centerX = (sx: number) => (sx + 0.5) / 2
 const centerY = (sy: number) => sy + 0.5
 
 const DIR = join(homedir(), ".cache", "uitop")
-const CACHE_FILE = join(DIR, "icons-v5.json")
+const CACHE_FILE = join(DIR, "icons-v7.json")
 /** W*H colours ("#rrggbb", or "" for see-through), or null when the app has no usable icon. */
 type Grid = string[] | null
 /** Where an icon comes from: a macOS .app bundle, or an icon name to look up on Linux. */
@@ -124,7 +124,9 @@ function draw(g: string[]): Line[] {
       const cols = q.map((x) => (x ? rgb(x) : [0, 0, 0]))
       if (solid.length < 4) {
         // see-through corners: only the opaque quadrants are drawn, over the terminal background
-        l.add(QUAD[solid.reduce((m, k) => m | (1 << k), 0)]!, hex(mean(solid.map((k) => cols[k]!))))
+        const part = hex(mean(solid.map((k) => cols[k]!)))
+        KEEP.add(part) // without this, mono mode paints the corner cells white
+        l.add(QUAD[solid.reduce((m, k) => m | (1 << k), 0)]!, part)
         continue
       }
       // all four are opaque: pick the two-colour split (foreground / background) that loses the least detail

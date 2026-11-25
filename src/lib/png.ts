@@ -112,21 +112,75 @@ export function pngToGrid(png: Buffer, outW: number, outH: number): string[] | n
       let r = 0
       let g = 0
       let b = 0
-      let a = 0
+      let a = 0 // total opacity, decides whether the cell is see-through
+      let wt = 0 // colour weight: strongly favours solid pixels over faint glow/halo pixels at the edge
       let n = 0
       for (let y = ya; y < yb; y++) {
         for (let x = xa; x < xb; x++) {
           n++
           if (x < 0 || y < 0 || x >= w || y >= h) continue
           const al = alphaAt(x, y)
+          const k = (al / 255) ** 4
           const i = y * stride + x * bpp
-          r += px[i]! * al
-          g += px[i + 1]! * al
-          b += px[i + 2]! * al
+          r += px[i]! * k
+          g += px[i + 1]! * k
+          b += px[i + 2]! * k
+          wt += k
           a += al
         }
       }
-      out.push(a / n < 128 ? "" : `#${hx(r / a)}${hx(g / a)}${hx(b / a)}`)
+      out.push(a / n < 128 || wt === 0 ? "" : `#${hx(r / wt)}${hx(g / wt)}${hx(b / wt)}`)
+    }
+  }
+  return fixWhiteEdges(out, outW, outH)
+}
+
+/**
+ * Light effects (glow, highlights) leave white sub-pixels along the icon's border. Those are repainted with the
+ * nearest non-white colour. Only white next to the border or to a see-through pixel is touched, and only when it
+ * is a minor part of the icon, so genuinely white icons stay white.
+ */
+function fixWhiteEdges(g: string[], W: number, H: number): string[] {
+  const rgbOf = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
+  const white = (c: string) => !!c && rgbOf(c).every((v) => v >= 215)
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? "" : g[y * W + x]!)
+  const edge = (x: number, y: number) => {
+    if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) return true
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!at(x + dx, y + dy)) return true
+    return false
+  }
+  const todo: number[] = []
+  let opaque = 0
+  let whites = 0
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const c = g[y * W + x]!
+      if (!c) continue
+      opaque++
+      if (white(c)) {
+        whites++
+        if (edge(x, y)) todo.push(y * W + x)
+      }
+    }
+  if (!todo.length || whites > opaque * 0.5) return g
+  const out = g.slice()
+  const hx = (n: number) => Math.round(n).toString(16).padStart(2, "0")
+  for (const i of todo) {
+    const x = i % W
+    const y = Math.floor(i / W)
+    for (let r = 1; r <= 4; r++) {
+      // closest ring first; take the average of the non-white opaque pixels found there
+      const found: number[][] = []
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue
+          const c = at(x + dx, y + dy)
+          if (c && !white(c)) found.push(rgbOf(c))
+        }
+      if (found.length) {
+        out[i] = "#" + [0, 1, 2].map((k) => hx(found.reduce((s, c) => s + c[k]!, 0) / found.length)).join("")
+        break
+      }
     }
   }
   return out
